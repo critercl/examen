@@ -100,17 +100,17 @@ def menu():
         ]
         for opcion in opciones:
             console.print(f"[cyan]{opcion}[/cyan]")
-        eleccion = Prompt.ask("\n👉 Seleccione una opción", choices=["1", "2", "3"], default="4")
+        eleccion = Prompt.ask("\n👉 Seleccione una opción", choices=["1", "2", "3"], default="3")
         match eleccion:
             case "1":
                 registrarFactura()
             case "2":
-                inicio=Prompt.ask("📅 Fecha Inicio (YYY-MM-DD) ",default=date.today().isoformat())
-                termino=Prompt.ask("📅 Fecha Termino (YYY-MM-DD) ",default=date.today().isoformat())
+                console.print(Panel("[bold blue]📤 EXPORTAR FACTURAS A EXCEL [/bold blue]", expand=False))
+                inicio=Prompt.ask("📅 Fecha Inicio (YYYY-MM-DD) ",default=date.today().isoformat())
+                termino=Prompt.ask("📅 Fecha Termino (YYYY-MM-DD) ",default=date.today().isoformat())
                 result=gestor.buscarFacturaRango(inicio,termino)
                 for row in result:
                     print(row)
-
             case "3":
                 break
 
@@ -121,9 +121,7 @@ def registrarFactura():
     totalItem=[]
     iva=0
     bruto=0
-    
     console.print("[bold magenta] Registro de Facturas [/bold magenta] ")
-
     numero=IntPrompt.ask("🔢 Numero de Factura ")
     result=gestor.BuscvarNroFactura(numero)
     if result==1:
@@ -133,7 +131,7 @@ def registrarFactura():
         return False
     rut=Prompt.ask("🆔 Rut Cliente")
     nombre=Prompt.ask("👤 Nombre Cliente ")
-    fecha=Prompt.ask("📅 Fecha Factura (YYY-MM-DD) ",default=date.today().isoformat())
+    fecha=Prompt.ask("📅 Fecha Factura (YYYY-MM-DD) ",default=date.today().isoformat())
     pago=Prompt.ask("Forma de Pago 1: Efectivo, 2: Tarjeta, 3: Transferencia", choices=["1","2","3"], default="1")
     pos=0
     while True:
