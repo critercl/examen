@@ -93,6 +93,36 @@ def menu():
         for opcion in opciones:
             console.print(f"[cyan]{opcion}[/cyan]")
         eleccion = Prompt.ask("\n👉 Seleccione una opción", choices=["1", "2", "3", "4"], default="4")
+        match eleccion:
+            case "1":
+                registrarFactura()
+            case "4":
+                break
+
+def registrarFactura():
+    producto=[]
+    cantidad=[]
+    valor=[]
+    console.print("[bold magenta] Registro de Facturas [/bold magenta] ")
+    numero=IntPrompt.ask("Numero de Factura: ")
+    rut=Prompt.ask("Rut Cliente")
+    nombre=Prompt.ask("Nombre Cliente: ")
+    fecha=Prompt.ask("Fecha Factura (YYY-MM-DD) ",default=date.today().isoformat())
+    pago=Prompt.ask("Forma de Pago 1: Efectivo, 2: Tarjeta, 3: Transferencia", choices=["1","2","3"], default="1")
+    pos=0
+    while True:
+        aux_prod=Prompt.ask("Nombre de Producto :")
+        aux_cant=IntPrompt.ask("Cantidad a Comprar :")
+        aux_valor=IntPrompt.ask("Valor Producto")
+        producto.append(aux_prod)
+        cantidad.append(aux_cant)
+        pos+=1
+
+        
+
+
+
+
 
 def Limpiar():
     if os.name=="nt":
