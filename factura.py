@@ -71,14 +71,23 @@ class Factura:
     def InsertarCabecera(self,numero,nombre,rut,fecha,pago,iva,bruto,total):
         cursor=self.conn.cursor()
         query='''INSERT INTO "CabeceraFactura" ("numeroFactura", "nombreCliente", "rutCliente", "fechaEmision","FormaPago","iva","TotalBruto","totalCompra") VALUES (?, ?, ?, ?,?, ?, ?, ?)'''
-        fecha=fecha.isoformat()
         cursor.execute(query,(numero,nombre,rut,fecha,pago,iva,bruto,total))
         self.conn.commit()
+    # Buscar Nunmero de Factura
+    def BuscvarNroFactura(self,numero):
+        cursor=self.conn.cursor()
+        query="select count(*)  from CabeceraFactura where numeroFactura=?"
+        cursor.execute(query,(numero,))
+        return  cursor.fetchone()[0]
+    def buscarFacturaRango(self,inicio,termino):
+        query="select * from CabeceraFactura Where fechaEmision>=? and fechaEmision<=?"
+        cursor=self.conn.cursor()
+        cursor.execute(query,(inicio,termino))
+        return cursor.fetchall()
     # Insertar Detalle de Factura
     def InsertarDetalle(self,numero,producto,cantidad,precio,total):
         cursor=self.conn.cursor()
-        query='''INSERT INTO "DetalleFactura" ("numeroFactura", "nombreCliente", "rutCliente", "fechaEmision","FormaPago","iva","TotalBruto","totalCompra") VALUES (?, ?, ?, ?,?, ?, ?, ?)'''
-        fecha=fecha.isoformat()
+        query='''INSERT INTO "DetalleFactura" ("numeroFactura", "nombreProducto", "cantidad", "precioUnitario","totalItem") VALUES (?, ?, ?, ?, ?)'''
         cursor.execute(query,(numero,producto,cantidad,precio,total))
         self.conn.commit()
 def menu():
@@ -87,42 +96,66 @@ def menu():
         opciones = [
             "1. Registrar nueva factura",
             "2. Exportar facturas a Excel (por rango de fechas)",
-            "3. Ver todas las facturas",
-            "4. Salir"
+            "3. Salir"
         ]
         for opcion in opciones:
             console.print(f"[cyan]{opcion}[/cyan]")
-        eleccion = Prompt.ask("\n👉 Seleccione una opción", choices=["1", "2", "3", "4"], default="4")
+        eleccion = Prompt.ask("\n👉 Seleccione una opción", choices=["1", "2", "3"], default="4")
         match eleccion:
             case "1":
                 registrarFactura()
-            case "4":
+            case "2":
+                inicio=Prompt.ask("📅 Fecha Inicio (YYY-MM-DD) ",default=date.today().isoformat())
+                termino=Prompt.ask("📅 Fecha Termino (YYY-MM-DD) ",default=date.today().isoformat())
+                result=gestor.buscarFacturaRango(inicio,termino)
+                for row in result:
+                    print(row)
+
+            case "3":
                 break
 
 def registrarFactura():
     producto=[]
     cantidad=[]
     valor=[]
+    totalItem=[]
+    iva=0
+    bruto=0
+    
     console.print("[bold magenta] Registro de Facturas [/bold magenta] ")
-    numero=IntPrompt.ask("Numero de Factura: ")
-    rut=Prompt.ask("Rut Cliente")
-    nombre=Prompt.ask("Nombre Cliente: ")
-    fecha=Prompt.ask("Fecha Factura (YYY-MM-DD) ",default=date.today().isoformat())
+
+    numero=IntPrompt.ask("🔢 Numero de Factura ")
+    result=gestor.BuscvarNroFactura(numero)
+    if result==1:
+        console.print("❌ La Factura que esta intentando de ingresar ya existe en la base ❌", style="bold red")
+        console.print("Presione cualquier tecla para continuar...", style="bold cyan")
+        console.input()
+        return False
+    rut=Prompt.ask("🆔 Rut Cliente")
+    nombre=Prompt.ask("👤 Nombre Cliente ")
+    fecha=Prompt.ask("📅 Fecha Factura (YYY-MM-DD) ",default=date.today().isoformat())
     pago=Prompt.ask("Forma de Pago 1: Efectivo, 2: Tarjeta, 3: Transferencia", choices=["1","2","3"], default="1")
     pos=0
     while True:
-        aux_prod=Prompt.ask("Nombre de Producto :")
-        aux_cant=IntPrompt.ask("Cantidad a Comprar :")
-        aux_valor=IntPrompt.ask("Valor Producto")
+        aux_prod=Prompt.ask("Nombre de Producto ")
+        aux_cant=IntPrompt.ask("Cantidad a Comprar ")
+        aux_valor=IntPrompt.ask("Valor Producto ")
+        
+        bruto+=(aux_cant*aux_valor)
+        aux_total=(aux_cant*aux_valor)*1.19
+        iva+=(aux_cant*aux_valor)*0.19
         producto.append(aux_prod)
         cantidad.append(aux_cant)
+        valor.append(aux_valor)
+        totalItem.append(aux_total)
+        op=Prompt.ask("Desea Continuar Ingresando ", choices=["S","N"])
+        if op=="N":
+            break
+        print(producto[pos])
         pos+=1
-
-        
-
-
-
-
+    gestor.InsertarCabecera(numero,nombre,rut,fecha,pago,iva,bruto,(bruto+iva))
+    for pos in range(len(producto)):
+        gestor.InsertarDetalle(numero,producto[pos],cantidad[pos],valor[pos],round(totalItem[pos],0)) 
 
 def Limpiar():
     if os.name=="nt":
