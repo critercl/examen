@@ -119,11 +119,11 @@ class Factura:
             fila+=2
             libro.merge_range(f'A{fila}:P{fila}', f'DETALLE FACTURA N° {row[0]}',formato_titulo)
             fila+=1
-            libro.merge_range(f'A{fila}:C{fila}', 'POSICION',formato_titulo)
-            libro.merge_range(f'D{fila}:F{fila}', 'PRODUCTO',formato_titulo)
-            libro.merge_range(f'G{fila}:I{fila}', 'CANTIDAD',formato_titulo)
-            libro.merge_range(f'J{fila}:L{fila}', 'PRECIO',formato_titulo)
-            libro.merge_range(f'M{fila}:P{fila}', 'TOTAL POSICION',formato_titulo)
+            libro.merge_range(f'A{fila}:C{fila}', 'POSICION',formato_encabezado)
+            libro.merge_range(f'D{fila}:F{fila}', 'PRODUCTO',formato_encabezado)
+            libro.merge_range(f'G{fila}:I{fila}', 'CANTIDAD',formato_encabezado)
+            libro.merge_range(f'J{fila}:L{fila}', 'PRECIO',formato_encabezado)
+            libro.merge_range(f'M{fila}:P{fila}', 'TOTAL POSICION',formato_encabezado)
             fila+=1
             num=1
             for pos in result_posicion:
