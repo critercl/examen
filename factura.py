@@ -6,7 +6,7 @@ try:
     from rich.panel import Panel
     from rich.console import Console
     from colorama import init, Fore, Back, Style
-    from datetime import date
+    from datetime import date, datetime
     import xlsxwriter
 
 except ImportError as e:
@@ -79,11 +79,63 @@ class Factura:
         query="select count(*)  from CabeceraFactura where numeroFactura=?"
         cursor.execute(query,(numero,))
         return  cursor.fetchone()[0]
-    def buscarFacturaRango(self,inicio,termino):
+    def ExportaraExcel(self,inicio,termino):
+        FormasPagos=["EFECTIVO","TARJETA","TRANSFERENCIA"]
         query="select * from CabeceraFactura Where fechaEmision>=? and fechaEmision<=?"
         cursor=self.conn.cursor()
         cursor.execute(query,(inicio,termino))
-        return cursor.fetchall()
+        result=cursor.fetchall()
+        archivo=f"Exportacion_Factura_desde_{inicio}_hasta_{termino}.xlsx"
+        console.print("[bold green]📊 se Crea Archivo Excel "+ archivo+"[/bold green]")
+        excel = xlsxwriter.Workbook(archivo)
+        libro=excel.add_worksheet(f"Facturas_{inicio}_{termino}")
+        #### Formatos para el Excel ###
+        formato_titulo = excel.add_format({'bold': True,'font_size': 16,'bg_color': '#D3D3D3', 'align': 'center','underline': True})
+        formato_encabezado = excel.add_format({'bold': True,'font_size': 12,'bg_color': '#D3D3D3','border': 1,'align': 'center'})
+        formato_numero = excel.add_format({'num_format': '#,##0.00'})
+
+        libro.merge_range('A1:P1', 'Listado de Facturas Desde '+str(inicio)+" AL "+str(termino),formato_titulo)
+        fila=1
+        for row in result:
+            libro.write(fila,0,"Numero de Factura",formato_encabezado)
+            libro.write(fila,1,row[0],formato_encabezado)
+            libro.write(fila,2,"Cliente",formato_encabezado)
+            libro.write(fila,3,row[1],formato_encabezado)
+            libro.write(fila,4,"RUT",formato_encabezado)
+            libro.write(fila,5,row[2],formato_encabezado)
+            libro.write(fila,6,"Fecha",formato_encabezado)
+            libro.write(fila,7,row[3],formato_encabezado)
+            libro.write(fila,8,"Forma Pago",formato_encabezado)
+            libro.write(fila,9,FormasPagos[row[4]-1],formato_encabezado)
+            libro.write(fila,10,"Total Neto",formato_encabezado)
+            libro.write(fila,11,row[6],formato_encabezado)
+            libro.write(fila,12,"Iva",formato_encabezado)
+            libro.write(fila,13,row[5],formato_encabezado)
+            libro.write(fila,14,"Total a Pagar",formato_encabezado)
+            libro.write(fila,15,row[7],formato_encabezado)            
+            query="SELECT * FROM DetalleFactura WHERE numeroFactura=?"
+            cursor.execute(query,(row[0],))
+            result_posicion=cursor.fetchall()
+            fila+=2
+            libro.merge_range(f'A{fila}:P{fila}', f'DETALLE FACTURA N° {row[0]}',formato_titulo)
+            fila+=1
+            libro.merge_range(f'A{fila}:C{fila}', 'POSICION',formato_titulo)
+            libro.merge_range(f'D{fila}:F{fila}', 'PRODUCTO',formato_titulo)
+            libro.merge_range(f'G{fila}:I{fila}', 'CANTIDAD',formato_titulo)
+            libro.merge_range(f'J{fila}:L{fila}', 'PRECIO',formato_titulo)
+            libro.merge_range(f'M{fila}:P{fila}', 'TOTAL POSICION',formato_titulo)
+            fila+=1
+            num=1
+            for pos in result_posicion:
+                libro.merge_range(f'A{fila}:C{fila}', num,formato_encabezado)
+                libro.merge_range(f'D{fila}:F{fila}', pos[2],formato_encabezado)
+                libro.merge_range(f'G{fila}:I{fila}', pos[3],formato_encabezado)
+                libro.merge_range(f'J{fila}:L{fila}', pos[4],formato_encabezado)
+                libro.merge_range(f'M{fila}:P{fila}', pos[5],formato_encabezado)
+                fila+=1
+                num+=1
+
+        excel.close()
     # Insertar Detalle de Factura
     def InsertarDetalle(self,numero,producto,cantidad,precio,total):
         cursor=self.conn.cursor()
@@ -106,11 +158,23 @@ def menu():
                 registrarFactura()
             case "2":
                 console.print(Panel("[bold blue]📤 EXPORTAR FACTURAS A EXCEL [/bold blue]", expand=False))
-                inicio=Prompt.ask("📅 Fecha Inicio (YYYY-MM-DD) ",default=date.today().isoformat())
-                termino=Prompt.ask("📅 Fecha Termino (YYYY-MM-DD) ",default=date.today().isoformat())
-                result=gestor.buscarFacturaRango(inicio,termino)
-                for row in result:
-                    print(row)
+                while True:
+                    inicio=Prompt.ask("📅 Fecha Inicio (YYYY-MM-DD) ",default=date.today().isoformat())
+                    try:
+                        inicio = datetime.strptime(inicio, "%Y-%m-%d").date()
+                        inicio=str(inicio)
+                        break
+                    except ValueError:
+                        console.print(f"[bold red] Error en el formato de Fecha (YYYY-MM-DD) Ejemplo: {date.today().isoformat()} [/bold red] ")
+                while True:
+                    termino=Prompt.ask("📅 Fecha Termino (YYYY-MM-DD) ",default=date.today().isoformat())
+                    try:
+                        termino = datetime.strptime(termino, "%Y-%m-%d").date()
+                        termino=str(termino)
+                        break
+                    except ValueError:
+                        console.print(f"[bold red] Error en el formato de Fecha (YYYY-MM-DD) Ejemplo: {date.today().isoformat()} [/bold red] ")
+                result=gestor.ExportaraExcel(inicio,termino)
             case "3":
                 break
 
@@ -131,7 +195,13 @@ def registrarFactura():
         return False
     rut=Prompt.ask("🆔 Rut Cliente")
     nombre=Prompt.ask("👤 Nombre Cliente ")
-    fecha=Prompt.ask("📅 Fecha Factura (YYYY-MM-DD) ",default=date.today().isoformat())
+    while True:
+        fecha=Prompt.ask("📅 Fecha Factura (YYYY-MM-DD) ",default=date.today().isoformat())
+        try:
+            fecha_str = datetime.strptime(fecha, "%Y-%m-%d").date()
+            break
+        except ValueError:
+                console.print(f"[bold red] Error en el formato de Fecha (YYYY-MM-DD) Ejemplo: {date.today().isoformat()} [/bold red] ")
     pago=Prompt.ask("Forma de Pago 1: Efectivo, 2: Tarjeta, 3: Transferencia", choices=["1","2","3"], default="1")
     pos=0
     while True:
@@ -140,12 +210,16 @@ def registrarFactura():
         aux_valor=IntPrompt.ask("Valor Producto ")
         
         bruto+=(aux_cant*aux_valor)
-        aux_total=(aux_cant*aux_valor)*1.19
-        iva+=(aux_cant*aux_valor)*0.19
+        aux_total=round((aux_cant*aux_valor)*1.19,0)
+        iva+=round((aux_cant*aux_valor)*0.19,0)
         producto.append(aux_prod)
         cantidad.append(aux_cant)
         valor.append(aux_valor)
         totalItem.append(aux_total)
+        console.print(f"Neto {(aux_cant*aux_valor)}")
+        console.print(f"Iva {round((aux_cant*aux_valor)*0.19,0)}")
+        console.print(f"Total {totalItem}")
+        
         op=Prompt.ask("Desea Continuar Ingresando ", choices=["S","N"])
         if op=="N":
             break
@@ -184,6 +258,7 @@ else:
     print(Fore.RED+f"🔴 Error al crear base y tablas {result}") 
 #Creacion de Clase
 print(Fore.GREEN+"✅ Se crea Creacion de Clase Factura - REQ02 ")
-print(Fore.GREEN+"✅ Se crea Metodo insertar Cabecera y Detalle - REQ03 ")
 
+
+# Acceso al menu principal
 menu()
