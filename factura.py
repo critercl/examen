@@ -239,8 +239,19 @@ def formato_chileno(numero):
     #formatea número chileno sin decimales
     return f"{int(numero):,}".replace(",", ".") 
 
+
+#Lista de Integrantes del Grupos
+def Integrante(lista):
+    table=Table(title="[bold blue]* PROFESOR: [/bold blue] [bold yellow]JOSE MAUREIRA[/bold yellow][bold blue] *[/bold blue]", style="green")
+    table.add_column("Integrantes del Grupo - Seccion 50", justify="left", style="white", no_wrap=True)
+    for nombre in lista:
+        table.add_row(nombre)
+    console.print(table)
+
 console = Console()
 Limpiar()
+#Lista de Integrantes del Equipo
+lista_inte=["ANIBAL ESTEBAN SEGOVIA POBLETE","LUIS ADRIAN SOLANO ALVAREZ","PEDRO ENRIQUE VASQUEZ CHUQUIJAJAS","NELSON RODRIGO LEIVA HERRERA"]
 #Crea Base Datos
 gestor=Factura("facturas.db")
 #Conecta a la Base
@@ -261,4 +272,5 @@ print(Fore.GREEN+"✅ Se crea Creacion de Clase Factura - REQ02 ")
 
 
 # Acceso al menu principal
+Integrante(lista_inte)
 menu()
